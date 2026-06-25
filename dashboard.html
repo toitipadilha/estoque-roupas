@@ -1,4 +1,105 @@
-// Auto-hide alerts
-document.querySelectorAll('.alert').forEach(el => {
-  setTimeout(() => { el.style.transition = 'opacity .5s'; el.style.opacity = '0'; setTimeout(() => el.remove(), 500); }, 4000);
-});
+{% extends 'base.html' %}
+{% block title %}Dashboard · EstoqueVestir{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+{% block page_sub %}Visão geral do estoque{% endblock %}
+
+{% block content %}
+<!-- KPI Cards -->
+<div class="cards-grid">
+  <div class="card card-stat accent">
+    <div class="label">Total de Produtos</div>
+    <div class="value">{{ total_produtos }}</div>
+    <div class="sub">itens cadastrados</div>
+  </div>
+  <div class="card card-stat warning">
+    <div class="label">Estoque Baixo</div>
+    <div class="value">{{ estoque_baixo }}</div>
+    <div class="sub">abaixo do mínimo</div>
+  </div>
+  <div class="card card-stat danger">
+    <div class="label">Sem Estoque</div>
+    <div class="value">{{ sem_estoque }}</div>
+    <div class="sub">itens zerados</div>
+  </div>
+  <div class="card card-stat success">
+    <div class="label">Categorias</div>
+    <div class="value">{{ total_categorias }}</div>
+    <div class="sub">categorias ativas</div>
+  </div>
+  <div class="card card-stat">
+    <div class="label">Valor em Custo</div>
+    <div class="value" style="font-size:20px;">R$ {{ "%.2f"|format(valor_estoque)|replace('.','@')|replace(',','.')|replace('@',',') }}</div>
+    <div class="sub">custo total do estoque</div>
+  </div>
+  <div class="card card-stat accent">
+    <div class="label">Valor de Venda</div>
+    <div class="value" style="font-size:20px;">R$ {{ "%.2f"|format(valor_venda)|replace('.','@')|replace(',','.')|replace('@',',') }}</div>
+    <div class="sub">potencial de receita</div>
+  </div>
+</div>
+
+<div class="dash-grid">
+  <!-- Alertas -->
+  <div>
+    <div class="section-title">⚠ Alertas de Estoque</div>
+    <div class="table-wrap">
+      {% if alertas %}
+      <table>
+        <thead>
+          <tr><th>Produto</th><th>Qtd</th><th>Mín</th><th>Status</th></tr>
+        </thead>
+        <tbody>
+          {% for p in alertas %}
+          <tr>
+            <td>
+              <a href="{{ url_for('produto_detalhe', id=p.id) }}" style="color:var(--accent);">{{ p.nome }}</a>
+              <div style="font-size:11px;color:var(--muted);">{{ p.sku }}</div>
+            </td>
+            <td class="{% if p.quantidade == 0 %}qtd-zero{% else %}qtd-low{% endif %}">{{ p.quantidade }}</td>
+            <td style="color:var(--muted);">{{ p.estoque_minimo }}</td>
+            <td>
+              {% if p.status == 'sem_estoque' %}<span class="badge badge-sem">Zerado</span>
+              {% else %}<span class="badge badge-baixo">Baixo</span>{% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="empty">
+        <svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        <p>Estoque em dia!</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Últimas movimentações -->
+  <div>
+    <div class="section-title">↕ Últimas Movimentações</div>
+    <div class="table-wrap">
+      {% if movimentacoes %}
+      <table>
+        <thead>
+          <tr><th>Produto</th><th>Tipo</th><th>Qtd</th><th>Data</th></tr>
+        </thead>
+        <tbody>
+          {% for m in movimentacoes %}
+          <tr>
+            <td style="font-size:12.5px;">{{ m.produto.nome[:28] }}{% if m.produto.nome|length > 28 %}…{% endif %}</td>
+            <td>
+              <span class="badge badge-{{ m.tipo }}">{{ m.tipo|capitalize }}</span>
+            </td>
+            <td>{{ m.quantidade }}</td>
+            <td style="color:var(--muted);font-size:12px;">{{ m.criado_em.strftime('%d/%m %H:%M') }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="empty"><p>Nenhuma movimentação.</p></div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

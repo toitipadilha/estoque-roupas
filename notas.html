@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+{% block title %}Notas Fiscais · EstoqueVestir{% endblock %}
+{% block page_title %}Notas Fiscais{% endblock %}
+{% block page_sub %}Entradas e saídas vinculadas a NF{% endblock %}
+{% block topbar_actions %}
+  <a href="{{ url_for('nota_nova') }}" class="btn btn-primary">
+    <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    Lançar NF
+  </a>
+{% endblock %}
+{% block content %}
+<div class="table-wrap">
+  {% if notas %}
+  <table>
+    <thead><tr><th>Nº / Série</th><th>Tipo</th><th>Fornecedor</th><th>Data Emissão</th><th>Itens</th><th>Valor Total</th><th>Chave NF-e</th><th></th></tr></thead>
+    <tbody>
+      {% for n in notas %}
+      <tr>
+        <td>
+          <a href="{{ url_for('nota_detalhe', id=n.id) }}" style="color:var(--accent);font-weight:500;">{{ n.numero }}</a>
+          {% if n.serie %}<span style="color:var(--muted);font-size:11px;"> / {{ n.serie }}</span>{% endif %}
+        </td>
+        <td><span class="badge badge-{{ n.tipo }}">{{ 'Entrada' if n.tipo=='entrada' else 'Saída' }}</span></td>
+        <td style="font-size:12.5px;">{{ n.fornecedor.nome if n.fornecedor else '—' }}</td>
+        <td style="color:var(--muted);font-size:12px;">{{ n.data_emissao.strftime('%d/%m/%Y') }}</td>
+        <td>{{ n.itens|length }}</td>
+        <td style="color:var(--accent);">R$ {{ "%.2f"|format(n.valor_total) }}</td>
+        <td style="font-family:monospace;font-size:11px;color:var(--muted);">{{ n.chave_nfe[:20]+'…' if n.chave_nfe and n.chave_nfe|length>20 else n.chave_nfe or '—' }}</td>
+        <td>
+          <div style="display:flex;gap:6px;">
+            <a href="{{ url_for('nota_detalhe', id=n.id) }}" class="btn btn-secondary btn-sm">Ver</a>
+            {% if session.perfil == 'admin' %}
+            <form method="POST" action="{{ url_for('nota_excluir', id=n.id) }}" onsubmit="return confirm('Excluir NF {{ n.numero }}? O estoque será revertido.')">
+              <button type="submit" class="btn btn-danger btn-sm">✕</button>
+            </form>
+            {% endif %}
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty">
+    <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+    <p>Nenhuma nota fiscal lançada.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

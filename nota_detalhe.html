@@ -1,67 +1,55 @@
 {% extends 'base.html' %}
-{% block title %}{{ 'Editar' if usuario else 'Novo' }} Usuário · EstoqueVestir{% endblock %}
-{% block page_title %}{{ 'Editar Usuário' if usuario else 'Novo Usuário' }}{% endblock %}
-{% block page_sub %}{{ usuario.nome if usuario else 'Preencha os dados de acesso' }}{% endblock %}
-
+{% block title %}NF {{ nota.numero }} · EstoqueVestir{% endblock %}
+{% block page_title %}Nota Fiscal {{ nota.numero }}{% endblock %}
+{% block page_sub %}{{ 'Entrada' if nota.tipo=='entrada' else 'Saída' }} · {{ nota.data_emissao.strftime('%d/%m/%Y') }}{% endblock %}
 {% block topbar_actions %}
-  <a href="{{ url_for('usuarios') }}" class="btn btn-secondary">← Voltar</a>
+  <a href="{{ url_for('notas') }}" class="btn btn-secondary">← Notas</a>
+  {% if session.perfil == 'admin' %}
+  <form method="POST" action="{{ url_for('nota_excluir', id=nota.id) }}" onsubmit="return confirm('Excluir NF {{ nota.numero }}? O estoque será revertido.')">
+    <button type="submit" class="btn btn-danger">Excluir NF</button>
+  </form>
+  {% endif %}
 {% endblock %}
 
 {% block content %}
-<div class="form-card">
-  <div class="form-grid">
-    <div class="form-group full">
-      <label>Nome completo *</label>
-      <input type="text" id="nome" placeholder="João Silva" value="{{ usuario.nome if usuario else '' }}">
-    </div>
-    <div class="form-group full">
-      <label>E-mail *</label>
-      <input type="email" id="email" placeholder="joao@loja.com" value="{{ usuario.email if usuario else '' }}" {% if usuario %}readonly style="opacity:.6"{% endif %}>
-    </div>
-    <div class="form-group">
-      <label>{{ 'Nova Senha' if usuario else 'Senha *' }}</label>
-      <input type="password" id="senha" placeholder="{% if usuario %}Deixe vazio para manter{% else %}Mínimo 6 caracteres{% endif %}">
-    </div>
-    <div class="form-group">
-      <label>Perfil</label>
-      <select id="perfil">
-        <option value="vendedor" {% if usuario and usuario.perfil == 'vendedor' %}selected{% endif %}>Vendedor</option>
-        <option value="admin" {% if usuario and usuario.perfil == 'admin' %}selected{% endif %}>Administrador</option>
-      </select>
-    </div>
-    {% if usuario %}
-    <div class="form-group">
-      <label>Status</label>
-      <select id="ativo">
-        <option value="ativo" {% if usuario.ativo %}selected{% endif %}>Ativo</option>
-        <option value="" {% if not usuario.ativo %}selected{% endif %}>Inativo</option>
-      </select>
-    </div>
+<div class="card" style="margin-bottom:20px;">
+  <div class="detail-grid">
+    <div class="detail-item"><div class="dl">Número / Série</div><div class="dv">{{ nota.numero }}{% if nota.serie %} / {{ nota.serie }}{% endif %}</div></div>
+    <div class="detail-item"><div class="dl">Tipo</div><div class="dv"><span class="badge badge-{{ nota.tipo }}" style="font-size:14px;">{{ 'Entrada' if nota.tipo=='entrada' else 'Saída' }}</span></div></div>
+    <div class="detail-item"><div class="dl">Fornecedor</div><div class="dv">{{ nota.fornecedor.nome if nota.fornecedor else '—' }}</div></div>
+    <div class="detail-item"><div class="dl">Data de Emissão</div><div class="dv">{{ nota.data_emissao.strftime('%d/%m/%Y') }}</div></div>
+    <div class="detail-item"><div class="dl">Valor Total</div><div class="dv" style="color:var(--accent);">R$ {{ "%.2f"|format(nota.valor_total) }}</div></div>
+    <div class="detail-item"><div class="dl">Lançado em</div><div class="dv" style="font-size:14px;">{{ nota.criado_em.strftime('%d/%m/%Y %H:%M') }}</div></div>
+    {% if nota.chave_nfe %}
+    <div class="detail-item" style="grid-column:1/-1;"><div class="dl">Chave NF-e</div><div class="dv" style="font-family:monospace;font-size:13px;letter-spacing:1px;">{{ nota.chave_nfe }}</div></div>
     {% endif %}
-  </div>
-
-  <div style="display:flex;gap:10px;margin-top:24px;">
-    <button class="btn btn-primary" onclick="salvar()">Salvar</button>
-    <a href="{{ url_for('usuarios') }}" class="btn btn-ghost">Cancelar</a>
+    {% if nota.observacao %}
+    <div class="detail-item" style="grid-column:1/-1;"><div class="dl">Observação</div><div class="dv" style="font-size:14px;">{{ nota.observacao }}</div></div>
+    {% endif %}
   </div>
 </div>
 
-<script>
-function salvar() {
-  const form = document.createElement('form');
-  form.method = 'POST';
-  form.action = '{{ url_for("usuario_editar", id=usuario.id) if usuario else url_for("usuario_novo") }}';
-  const fields = {
-    nome: document.getElementById('nome').value,
-    email: document.getElementById('email').value,
-    senha: document.getElementById('senha').value,
-    perfil: document.getElementById('perfil').value,
-    {% if usuario %}ativo: document.getElementById('ativo').value,{% endif %}
-  };
-  for (const [k, v] of Object.entries(fields)) {
-    const i = document.createElement('input'); i.name = k; i.value = v; form.appendChild(i);
-  }
-  document.body.appendChild(form); form.submit();
-}
-</script>
+<div class="section-title" style="margin-bottom:12px;">Itens da Nota</div>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>Produto</th><th>SKU</th><th>Quantidade</th><th>Preço Unit.</th><th>Total</th></tr></thead>
+    <tbody>
+      {% for item in nota.itens %}
+      <tr>
+        <td><a href="{{ url_for('produto_detalhe', id=item.produto.id) }}" style="color:var(--accent);">{{ item.produto.nome }}</a></td>
+        <td style="font-family:monospace;font-size:12px;color:var(--muted);">{{ item.produto.sku }}</td>
+        <td style="font-weight:600;">{{ item.quantidade }}</td>
+        <td>R$ {{ "%.2f"|format(item.preco_unitario) }}</td>
+        <td style="color:var(--accent);">R$ {{ "%.2f"|format(item.quantidade * item.preco_unitario) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+    <tfoot>
+      <tr style="background:var(--surface2);font-weight:600;">
+        <td colspan="4" style="text-align:right;padding:12px 16px;">Total:</td>
+        <td style="color:var(--accent);padding:12px 16px;">R$ {{ "%.2f"|format(nota.valor_total) }}</td>
+      </tr>
+    </tfoot>
+  </table>
+</div>
 {% endblock %}

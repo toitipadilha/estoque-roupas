@@ -1,104 +1,57 @@
 {% extends 'base.html' %}
-{% block title %}Produtos · EstoqueVestir{% endblock %}
-{% block page_title %}Produtos{% endblock %}
-{% block page_sub %}{{ produtos|length }} produto(s) encontrado(s){% endblock %}
+{% block auth %}
+<div class="login-page">
+  <div class="login-box">
+    <div class="login-brand">
+      <span class="icon">◈</span>
+      <h1>EstoqueVestir</h1>
+      <p>Controle de estoque para moda</p>
+    </div>
 
-{% block topbar_actions %}
-  <a href="{{ url_for('exportar_csv') }}" class="btn btn-secondary">
-    <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-    Exportar CSV
-  </a>
-  <a href="{{ url_for('produto_novo') }}" class="btn btn-primary">
-    <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-    Novo Produto
-  </a>
-{% endblock %}
-
-{% block content %}
-<!-- Filtros -->
-<div class="search-row">
-  <input type="text" id="busca" placeholder="Buscar por nome ou SKU…" value="{{ q }}" style="max-width:300px;">
-  <select id="filtro-cat">
-    <option value="">Todas as categorias</option>
-    {% for c in categorias %}
-      <option value="{{ c.id }}" {% if cat_sel == c.id|string %}selected{% endif %}>{{ c.nome }}</option>
-    {% endfor %}
-  </select>
-  <select id="filtro-status">
-    <option value="">Todos os status</option>
-    <option value="baixo"       {% if status_sel=='baixo' %}selected{% endif %}>Estoque baixo</option>
-    <option value="sem_estoque" {% if status_sel=='sem_estoque' %}selected{% endif %}>Sem estoque</option>
-  </select>
-  <button class="btn btn-secondary" onclick="filtrar()">Filtrar</button>
-  <a href="{{ url_for('produtos') }}" class="btn btn-ghost">Limpar</a>
-</div>
-
-<div class="table-wrap">
-  {% if produtos %}
-  <table>
-    <thead>
-      <tr>
-        <th>SKU</th>
-        <th>Produto</th>
-        <th>Categoria</th>
-        <th>Tam.</th>
-        <th>Cor</th>
-        <th>Qtd</th>
-        <th>Preço Custo</th>
-        <th>Preço Venda</th>
-        <th>Status</th>
-        <th></th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for p in produtos %}
-      <tr>
-        <td style="font-family:monospace;font-size:12px;color:var(--muted);">{{ p.sku }}</td>
-        <td>
-          <a href="{{ url_for('produto_detalhe', id=p.id) }}" style="color:var(--accent);font-weight:500;">{{ p.nome }}</a>
-        </td>
-        <td style="color:var(--muted);font-size:12.5px;">{{ p.categoria.nome if p.categoria else '—' }}</td>
-        <td>{{ p.tamanho or '—' }}</td>
-        <td>{{ p.cor or '—' }}</td>
-        <td class="{% if p.quantidade == 0 %}qtd-zero{% elif p.quantidade <= p.estoque_minimo %}qtd-low{% else %}qtd-ok{% endif %}">
-          {{ p.quantidade }}
-        </td>
-        <td>R$ {{ "%.2f"|format(p.preco_custo) }}</td>
-        <td>R$ {{ "%.2f"|format(p.preco_venda) }}</td>
-        <td>
-          {% if p.status == 'ok' %}<span class="badge badge-ok">OK</span>
-          {% elif p.status == 'baixo' %}<span class="badge badge-baixo">Baixo</span>
-          {% else %}<span class="badge badge-sem">Zerado</span>{% endif %}
-        </td>
-        <td>
-          <div style="display:flex;gap:6px;">
-            <a href="{{ url_for('produto_editar', id=p.id) }}" class="btn btn-secondary btn-sm">Editar</a>
-            {% if session.perfil == 'admin' %}
-            <form method="POST" action="{{ url_for('produto_excluir', id=p.id) }}" onsubmit="return confirm('Excluir {{ p.nome }}?')">
-              <button type="submit" class="btn btn-danger btn-sm">✕</button>
-            </form>
-            {% endif %}
-          </div>
-        </td>
-      </tr>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for cat, msg in messages %}
+        <div class="alert alert-{{ cat }}" style="margin: 0 0 16px;">{{ msg }}</div>
       {% endfor %}
-    </tbody>
-  </table>
-  {% else %}
-  <div class="empty">
-    <svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-    <p>Nenhum produto encontrado.</p>
+    {% endwith %}
+
+    <div class="login-form">
+      <div class="form-group">
+        <label>E-mail</label>
+        <input type="email" name="email" placeholder="seu@email.com" id="email" autocomplete="email">
+      </div>
+      <div class="form-group">
+        <label>Senha</label>
+        <input type="password" name="senha" placeholder="••••••••" id="senha" autocomplete="current-password">
+      </div>
+      <button class="btn btn-primary" id="btn-login">
+        <svg viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+        Entrar
+      </button>
+    </div>
+
+    <p style="text-align:center;font-size:11.5px;color:var(--muted);margin-top:24px;">
+      Acesso restrito · EstoqueVestir by Toiti Sistemas
+    </p>
   </div>
-  {% endif %}
 </div>
 
 <script>
-function filtrar() {
-  const q = document.getElementById('busca').value;
-  const cat = document.getElementById('filtro-cat').value;
-  const status = document.getElementById('filtro-status').value;
-  window.location = `/produtos?q=${encodeURIComponent(q)}&categoria=${cat}&status=${status}`;
-}
-document.getElementById('busca').addEventListener('keydown', e => { if (e.key === 'Enter') filtrar(); });
+// Login via JS post to avoid form element issues
+document.getElementById('btn-login').addEventListener('click', () => {
+  const email = document.getElementById('email').value;
+  const senha = document.getElementById('senha').value;
+  const form = document.createElement('form');
+  form.method = 'POST';
+  form.action = '/login';
+  [['email', email], ['senha', senha]].forEach(([n, v]) => {
+    const i = document.createElement('input');
+    i.name = n; i.value = v; form.appendChild(i);
+  });
+  document.body.appendChild(form);
+  form.submit();
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('btn-login').click();
+});
 </script>
 {% endblock %}

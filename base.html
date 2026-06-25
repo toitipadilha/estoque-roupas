@@ -1,60 +1,104 @@
-{% extends 'base.html' %}
-{% block title %}Categorias · EstoqueVestir{% endblock %}
-{% block page_title %}Categorias{% endblock %}
-{% block page_sub %}Gerencie as categorias de produtos{% endblock %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}EstoqueVestir{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
 
-{% block content %}
-<div style="display:grid;grid-template-columns:340px 1fr;gap:24px;align-items:start;">
-  <div class="form-card">
-    <div class="section-title" style="margin-bottom:16px;">Nova Categoria</div>
-    <div class="form-group" style="margin-bottom:14px;">
-      <label>Nome *</label>
-      <input type="text" id="cat-nome" placeholder="Ex: Feminino, Calçados…">
+{% if session.usuario_id %}
+<div class="layout">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="brand">
+      <span class="brand-icon">◈</span>
+      <span class="brand-name">EstoqueVestir</span>
     </div>
-    <button class="btn btn-primary" onclick="salvar()">
-      <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-      Criar
-    </button>
-  </div>
 
-  <div class="table-wrap">
-    {% if categorias %}
-    <table>
-      <thead>
-        <tr><th>Categoria</th><th>Produtos</th><th></th></tr>
-      </thead>
-      <tbody>
-        {% for c in categorias %}
-        <tr>
-          <td style="font-weight:500;">{{ c.nome }}</td>
-          <td style="color:var(--muted);">{{ c.produtos|length }} produto(s)</td>
-          <td>
-            {% if c.produtos|length == 0 %}
-            <form method="POST" action="{{ url_for('categoria_excluir', id=c.id) }}" onsubmit="return confirm('Excluir {{ c.nome }}?')">
-              <button type="submit" class="btn btn-danger btn-sm">Excluir</button>
-            </form>
-            {% else %}
-            <span style="font-size:12px;color:var(--muted);">com produtos</span>
-            {% endif %}
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-    {% else %}
-    <div class="empty"><p>Nenhuma categoria cadastrada.</p></div>
-    {% endif %}
-  </div>
+    <nav class="nav">
+      <a href="{{ url_for('dashboard') }}" class="nav-link {% if request.endpoint == 'dashboard' %}active{% endif %}">
+        <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        Dashboard
+      </a>
+      <a href="{{ url_for('produtos') }}" class="nav-link {% if 'produto' in request.endpoint %}active{% endif %}">
+        <svg viewBox="0 0 24 24"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+        Produtos
+      </a>
+      <a href="{{ url_for('movimentacoes') }}" class="nav-link {% if request.endpoint == 'movimentacoes' %}active{% endif %}">
+        <svg viewBox="0 0 24 24"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 014-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 01-4 4H3"/></svg>
+        Movimentações
+      </a>
+      <a href="{{ url_for('relatorio') }}" class="nav-link {% if request.endpoint == 'relatorio' %}active{% endif %}">
+        <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        Relatório
+      </a>
+
+      <a href="{{ url_for('notas') }}" class="nav-link {% if 'nota' in request.endpoint %}active{% endif %}">
+        <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        Notas Fiscais
+      </a>
+
+      {% if session.perfil == 'admin' %}
+      <div class="nav-divider"></div>
+      <span class="nav-label">Admin</span>
+      <a href="{{ url_for('fornecedores') }}" class="nav-link {% if 'fornecedor' in request.endpoint %}active{% endif %}">
+        <svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg>
+        Fornecedores
+      </a>
+      <a href="{{ url_for('categorias') }}" class="nav-link {% if request.endpoint == 'categorias' %}active{% endif %}">
+        <svg viewBox="0 0 24 24"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+        Categorias
+      </a>
+      <a href="{{ url_for('usuarios') }}" class="nav-link {% if 'usuario' in request.endpoint %}active{% endif %}">
+        <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+        Usuários
+      </a>
+      {% endif %}
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="user-info">
+        <div class="user-avatar">{{ session.nome[0].upper() }}</div>
+        <div>
+          <div class="user-name">{{ session.nome }}</div>
+          <div class="user-role">{{ 'Admin' if session.perfil == 'admin' else 'Vendedor' }}</div>
+        </div>
+      </div>
+      <a href="{{ url_for('logout') }}" class="btn-logout" title="Sair">
+        <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      </a>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="main">
+    <div class="topbar">
+      <div>
+        <h1 class="page-title">{% block page_title %}{% endblock %}</h1>
+        <p class="page-sub">{% block page_sub %}{% endblock %}</p>
+      </div>
+      <div class="topbar-actions">{% block topbar_actions %}{% endblock %}</div>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for cat, msg in messages %}
+        <div class="alert alert-{{ cat }}">{{ msg }}</div>
+      {% endfor %}
+    {% endwith %}
+
+    <div class="content">
+      {% block content %}{% endblock %}
+    </div>
+  </main>
 </div>
+{% else %}
+  {% block auth %}{% endblock %}
+{% endif %}
 
-<script>
-function salvar() {
-  const nome = document.getElementById('cat-nome').value.trim();
-  if (!nome) { alert('Digite o nome da categoria.'); return; }
-  const form = document.createElement('form');
-  form.method = 'POST'; form.action = '/categorias';
-  const i = document.createElement('input'); i.name = 'nome'; i.value = nome; form.appendChild(i);
-  document.body.appendChild(form); form.submit();
-}
-</script>
-{% endblock %}
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

@@ -1,73 +1,48 @@
 {% extends 'base.html' %}
-{% block title %}{{ 'Editar' if produto else 'Novo' }} Produto · EstoqueVestir{% endblock %}
-{% block page_title %}{{ 'Editar Produto' if produto else 'Novo Produto' }}{% endblock %}
-{% block page_sub %}{{ produto.nome if produto else 'Preencha os dados abaixo' }}{% endblock %}
+{% block title %}{{ 'Editar' if usuario else 'Novo' }} Usuário · EstoqueVestir{% endblock %}
+{% block page_title %}{{ 'Editar Usuário' if usuario else 'Novo Usuário' }}{% endblock %}
+{% block page_sub %}{{ usuario.nome if usuario else 'Preencha os dados de acesso' }}{% endblock %}
 
 {% block topbar_actions %}
-  <a href="{{ url_for('produtos') }}" class="btn btn-secondary">← Voltar</a>
+  <a href="{{ url_for('usuarios') }}" class="btn btn-secondary">← Voltar</a>
 {% endblock %}
 
 {% block content %}
 <div class="form-card">
-  <div id="form-wrap">
-    <div class="form-grid">
-      <div class="form-group full">
-        <label>Nome do Produto *</label>
-        <input type="text" id="nome" placeholder="Ex: Camiseta Básica Feminina" value="{{ produto.nome if produto else '' }}">
-      </div>
-      <div class="form-group">
-        <label>SKU *</label>
-        <input type="text" id="sku" placeholder="Ex: CAM-FEM-001" value="{{ produto.sku if produto else '' }}" {% if produto %}readonly style="opacity:.6"{% endif %}>
-      </div>
-      <div class="form-group">
-        <label>Categoria</label>
-        <select id="categoria_id">
-          <option value="">Sem categoria</option>
-          {% for c in categorias %}
-            <option value="{{ c.id }}" {% if produto and produto.categoria_id == c.id %}selected{% endif %}>{{ c.nome }}</option>
-          {% endfor %}
-        </select>
-      </div>
-      <div class="form-group">
-        <label>Tamanho</label>
-        <select id="tamanho">
-          <option value="">—</option>
-          {% for t in ['PP','P','M','G','GG','XGG','34','36','38','40','42','44','46','48','50','1','2','3','4','6','8','10','12','14','U'] %}
-            <option {% if produto and produto.tamanho == t %}selected{% endif %}>{{ t }}</option>
-          {% endfor %}
-        </select>
-      </div>
-      <div class="form-group">
-        <label>Cor</label>
-        <input type="text" id="cor" placeholder="Ex: Azul, Preto…" value="{{ produto.cor if produto else '' }}">
-      </div>
-      <div class="form-group">
-        <label>Preço de Custo (R$)</label>
-        <input type="number" id="preco_custo" step="0.01" min="0" placeholder="0,00" value="{{ produto.preco_custo if produto else '' }}">
-      </div>
-      <div class="form-group">
-        <label>Preço de Venda (R$)</label>
-        <input type="number" id="preco_venda" step="0.01" min="0" placeholder="0,00" value="{{ produto.preco_venda if produto else '' }}">
-      </div>
-      {% if not produto %}
-      <div class="form-group">
-        <label>Quantidade Inicial</label>
-        <input type="number" id="quantidade" min="0" value="0">
-      </div>
-      {% endif %}
-      <div class="form-group">
-        <label>Estoque Mínimo</label>
-        <input type="number" id="estoque_minimo" min="0" value="{{ produto.estoque_minimo if produto else 5 }}">
-      </div>
+  <div class="form-grid">
+    <div class="form-group full">
+      <label>Nome completo *</label>
+      <input type="text" id="nome" placeholder="João Silva" value="{{ usuario.nome if usuario else '' }}">
     </div>
+    <div class="form-group full">
+      <label>E-mail *</label>
+      <input type="email" id="email" placeholder="joao@loja.com" value="{{ usuario.email if usuario else '' }}" {% if usuario %}readonly style="opacity:.6"{% endif %}>
+    </div>
+    <div class="form-group">
+      <label>{{ 'Nova Senha' if usuario else 'Senha *' }}</label>
+      <input type="password" id="senha" placeholder="{% if usuario %}Deixe vazio para manter{% else %}Mínimo 6 caracteres{% endif %}">
+    </div>
+    <div class="form-group">
+      <label>Perfil</label>
+      <select id="perfil">
+        <option value="vendedor" {% if usuario and usuario.perfil == 'vendedor' %}selected{% endif %}>Vendedor</option>
+        <option value="admin" {% if usuario and usuario.perfil == 'admin' %}selected{% endif %}>Administrador</option>
+      </select>
+    </div>
+    {% if usuario %}
+    <div class="form-group">
+      <label>Status</label>
+      <select id="ativo">
+        <option value="ativo" {% if usuario.ativo %}selected{% endif %}>Ativo</option>
+        <option value="" {% if not usuario.ativo %}selected{% endif %}>Inativo</option>
+      </select>
+    </div>
+    {% endif %}
+  </div>
 
-    <div style="display:flex;gap:10px;margin-top:24px;">
-      <button class="btn btn-primary" onclick="salvar()">
-        <svg viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-        Salvar
-      </button>
-      <a href="{{ url_for('produtos') }}" class="btn btn-ghost">Cancelar</a>
-    </div>
+  <div style="display:flex;gap:10px;margin-top:24px;">
+    <button class="btn btn-primary" onclick="salvar()">Salvar</button>
+    <a href="{{ url_for('usuarios') }}" class="btn btn-ghost">Cancelar</a>
   </div>
 </div>
 
@@ -75,24 +50,18 @@
 function salvar() {
   const form = document.createElement('form');
   form.method = 'POST';
-  form.action = '{{ url_for("produto_editar", id=produto.id) if produto else url_for("produto_novo") }}';
+  form.action = '{{ url_for("usuario_editar", id=usuario.id) if usuario else url_for("usuario_novo") }}';
   const fields = {
     nome: document.getElementById('nome').value,
-    sku: document.getElementById('sku').value,
-    categoria_id: document.getElementById('categoria_id').value,
-    tamanho: document.getElementById('tamanho').value,
-    cor: document.getElementById('cor').value,
-    preco_custo: document.getElementById('preco_custo').value,
-    preco_venda: document.getElementById('preco_venda').value,
-    {% if not produto %}quantidade: document.getElementById('quantidade').value,{% endif %}
-    estoque_minimo: document.getElementById('estoque_minimo').value,
+    email: document.getElementById('email').value,
+    senha: document.getElementById('senha').value,
+    perfil: document.getElementById('perfil').value,
+    {% if usuario %}ativo: document.getElementById('ativo').value,{% endif %}
   };
   for (const [k, v] of Object.entries(fields)) {
-    const i = document.createElement('input');
-    i.name = k; i.value = v; form.appendChild(i);
+    const i = document.createElement('input'); i.name = k; i.value = v; form.appendChild(i);
   }
-  document.body.appendChild(form);
-  form.submit();
+  document.body.appendChild(form); form.submit();
 }
 </script>
 {% endblock %}

@@ -1,55 +1,47 @@
 {% extends 'base.html' %}
-{% block title %}NF {{ nota.numero }} · EstoqueVestir{% endblock %}
-{% block page_title %}Nota Fiscal {{ nota.numero }}{% endblock %}
-{% block page_sub %}{{ 'Entrada' if nota.tipo=='entrada' else 'Saída' }} · {{ nota.data_emissao.strftime('%d/%m/%Y') }}{% endblock %}
+{% block title %}Fornecedores · EstoqueVestir{% endblock %}
+{% block page_title %}Fornecedores{% endblock %}
+{% block page_sub %}{{ fornecedores|length }} fornecedor(es) cadastrado(s){% endblock %}
 {% block topbar_actions %}
-  <a href="{{ url_for('notas') }}" class="btn btn-secondary">← Notas</a>
-  {% if session.perfil == 'admin' %}
-  <form method="POST" action="{{ url_for('nota_excluir', id=nota.id) }}" onsubmit="return confirm('Excluir NF {{ nota.numero }}? O estoque será revertido.')">
-    <button type="submit" class="btn btn-danger">Excluir NF</button>
-  </form>
-  {% endif %}
+  <a href="{{ url_for('fornecedor_novo') }}" class="btn btn-primary">
+    <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    Novo Fornecedor
+  </a>
 {% endblock %}
-
 {% block content %}
-<div class="card" style="margin-bottom:20px;">
-  <div class="detail-grid">
-    <div class="detail-item"><div class="dl">Número / Série</div><div class="dv">{{ nota.numero }}{% if nota.serie %} / {{ nota.serie }}{% endif %}</div></div>
-    <div class="detail-item"><div class="dl">Tipo</div><div class="dv"><span class="badge badge-{{ nota.tipo }}" style="font-size:14px;">{{ 'Entrada' if nota.tipo=='entrada' else 'Saída' }}</span></div></div>
-    <div class="detail-item"><div class="dl">Fornecedor</div><div class="dv">{{ nota.fornecedor.nome if nota.fornecedor else '—' }}</div></div>
-    <div class="detail-item"><div class="dl">Data de Emissão</div><div class="dv">{{ nota.data_emissao.strftime('%d/%m/%Y') }}</div></div>
-    <div class="detail-item"><div class="dl">Valor Total</div><div class="dv" style="color:var(--accent);">R$ {{ "%.2f"|format(nota.valor_total) }}</div></div>
-    <div class="detail-item"><div class="dl">Lançado em</div><div class="dv" style="font-size:14px;">{{ nota.criado_em.strftime('%d/%m/%Y %H:%M') }}</div></div>
-    {% if nota.chave_nfe %}
-    <div class="detail-item" style="grid-column:1/-1;"><div class="dl">Chave NF-e</div><div class="dv" style="font-family:monospace;font-size:13px;letter-spacing:1px;">{{ nota.chave_nfe }}</div></div>
-    {% endif %}
-    {% if nota.observacao %}
-    <div class="detail-item" style="grid-column:1/-1;"><div class="dl">Observação</div><div class="dv" style="font-size:14px;">{{ nota.observacao }}</div></div>
-    {% endif %}
-  </div>
-</div>
-
-<div class="section-title" style="margin-bottom:12px;">Itens da Nota</div>
 <div class="table-wrap">
+  {% if fornecedores %}
   <table>
-    <thead><tr><th>Produto</th><th>SKU</th><th>Quantidade</th><th>Preço Unit.</th><th>Total</th></tr></thead>
+    <thead><tr><th>Nome</th><th>CNPJ</th><th>Contato</th><th>Telefone</th><th>E-mail</th><th>Produtos</th><th>Status</th><th></th></tr></thead>
     <tbody>
-      {% for item in nota.itens %}
+      {% for f in fornecedores %}
       <tr>
-        <td><a href="{{ url_for('produto_detalhe', id=item.produto.id) }}" style="color:var(--accent);">{{ item.produto.nome }}</a></td>
-        <td style="font-family:monospace;font-size:12px;color:var(--muted);">{{ item.produto.sku }}</td>
-        <td style="font-weight:600;">{{ item.quantidade }}</td>
-        <td>R$ {{ "%.2f"|format(item.preco_unitario) }}</td>
-        <td style="color:var(--accent);">R$ {{ "%.2f"|format(item.quantidade * item.preco_unitario) }}</td>
+        <td style="font-weight:500;">{{ f.nome }}</td>
+        <td style="font-family:monospace;font-size:12px;color:var(--muted);">{{ f.cnpj or '—' }}</td>
+        <td>{{ f.contato or '—' }}</td>
+        <td>{{ f.telefone or '—' }}</td>
+        <td style="font-size:12.5px;color:var(--muted);">{{ f.email or '—' }}</td>
+        <td><span class="badge badge-ok">{{ f.produtos|length }}</span></td>
+        <td>{% if f.ativo %}<span class="badge badge-ok">Ativo</span>{% else %}<span class="badge badge-sem">Inativo</span>{% endif %}</td>
+        <td>
+          <div style="display:flex;gap:6px;">
+            <a href="{{ url_for('fornecedor_editar', id=f.id) }}" class="btn btn-secondary btn-sm">Editar</a>
+            {% if not f.produtos and not f.notas %}
+            <form method="POST" action="{{ url_for('fornecedor_excluir', id=f.id) }}" onsubmit="return confirm('Excluir {{ f.nome }}?')">
+              <button type="submit" class="btn btn-danger btn-sm">✕</button>
+            </form>
+            {% endif %}
+          </div>
+        </td>
       </tr>
       {% endfor %}
     </tbody>
-    <tfoot>
-      <tr style="background:var(--surface2);font-weight:600;">
-        <td colspan="4" style="text-align:right;padding:12px 16px;">Total:</td>
-        <td style="color:var(--accent);padding:12px 16px;">R$ {{ "%.2f"|format(nota.valor_total) }}</td>
-      </tr>
-    </tfoot>
   </table>
+  {% else %}
+  <div class="empty">
+    <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+    <p>Nenhum fornecedor cadastrado.</p>
+  </div>
+  {% endif %}
 </div>
 {% endblock %}

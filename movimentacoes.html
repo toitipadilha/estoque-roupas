@@ -1,50 +1,95 @@
 {% extends 'base.html' %}
-{% block title %}Notas Fiscais · EstoqueVestir{% endblock %}
-{% block page_title %}Notas Fiscais{% endblock %}
-{% block page_sub %}Entradas e saídas vinculadas a NF{% endblock %}
-{% block topbar_actions %}
-  <a href="{{ url_for('nota_nova') }}" class="btn btn-primary">
-    <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-    Lançar NF
-  </a>
-{% endblock %}
+{% block title %}Movimentações · EstoqueVestir{% endblock %}
+{% block page_title %}Movimentações{% endblock %}
+{% block page_sub %}Entradas, saídas e ajustes de estoque{% endblock %}
+
 {% block content %}
+<!-- Formulário -->
+<div class="card" style="margin-bottom:24px;">
+  <div class="section-title" style="margin-bottom:16px;">Nova Movimentação</div>
+  <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
+    <div class="form-group">
+      <label>Produto *</label>
+      <select id="mov-produto" style="min-width:260px;">
+        <option value="">Selecione…</option>
+        {% for p in produtos %}
+          <option value="{{ p.id }}">{{ p.nome }} ({{ p.sku }}) — Qtd: {{ p.quantidade }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Tipo *</label>
+      <select id="mov-tipo" style="width:160px;">
+        <option value="entrada">Entrada</option>
+        <option value="saida">Saída</option>
+        <option value="ajuste">Ajuste (definir)</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Quantidade *</label>
+      <input type="number" id="mov-qtd" min="1" value="1" style="width:90px;">
+    </div>
+    <div class="form-group">
+      <label>Observação</label>
+      <input type="text" id="mov-obs" placeholder="Opcional…" style="width:240px;">
+    </div>
+    <button class="btn btn-primary" onclick="registrar()">
+      <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Registrar
+    </button>
+  </div>
+</div>
+
+<!-- Histórico -->
+<div class="section-title">Últimas 100 movimentações</div>
 <div class="table-wrap">
-  {% if notas %}
+  {% if movimentacoes %}
   <table>
-    <thead><tr><th>Nº / Série</th><th>Tipo</th><th>Fornecedor</th><th>Data Emissão</th><th>Itens</th><th>Valor Total</th><th>Chave NF-e</th><th></th></tr></thead>
+    <thead>
+      <tr><th>Produto</th><th>SKU</th><th>Tipo</th><th>Qtd</th><th>Observação</th><th>Usuário</th><th>Data</th></tr>
+    </thead>
     <tbody>
-      {% for n in notas %}
+      {% for m in movimentacoes %}
       <tr>
         <td>
-          <a href="{{ url_for('nota_detalhe', id=n.id) }}" style="color:var(--accent);font-weight:500;">{{ n.numero }}</a>
-          {% if n.serie %}<span style="color:var(--muted);font-size:11px;"> / {{ n.serie }}</span>{% endif %}
+          <a href="{{ url_for('produto_detalhe', id=m.produto.id) }}" style="color:var(--accent);">{{ m.produto.nome }}</a>
         </td>
-        <td><span class="badge badge-{{ n.tipo }}">{{ 'Entrada' if n.tipo=='entrada' else 'Saída' }}</span></td>
-        <td style="font-size:12.5px;">{{ n.fornecedor.nome if n.fornecedor else '—' }}</td>
-        <td style="color:var(--muted);font-size:12px;">{{ n.data_emissao.strftime('%d/%m/%Y') }}</td>
-        <td>{{ n.itens|length }}</td>
-        <td style="color:var(--accent);">R$ {{ "%.2f"|format(n.valor_total) }}</td>
-        <td style="font-family:monospace;font-size:11px;color:var(--muted);">{{ n.chave_nfe[:20]+'…' if n.chave_nfe and n.chave_nfe|length>20 else n.chave_nfe or '—' }}</td>
-        <td>
-          <div style="display:flex;gap:6px;">
-            <a href="{{ url_for('nota_detalhe', id=n.id) }}" class="btn btn-secondary btn-sm">Ver</a>
-            {% if session.perfil == 'admin' %}
-            <form method="POST" action="{{ url_for('nota_excluir', id=n.id) }}" onsubmit="return confirm('Excluir NF {{ n.numero }}? O estoque será revertido.')">
-              <button type="submit" class="btn btn-danger btn-sm">✕</button>
-            </form>
-            {% endif %}
-          </div>
-        </td>
+        <td style="font-family:monospace;font-size:12px;color:var(--muted);">{{ m.produto.sku }}</td>
+        <td><span class="badge badge-{{ m.tipo }}">{{ m.tipo|capitalize }}</span></td>
+        <td style="font-weight:600;">{{ m.quantidade }}</td>
+        <td style="color:var(--muted);font-size:12.5px;">{{ m.observacao or '—' }}</td>
+        <td style="font-size:12.5px;">{{ m.usuario.nome if m.usuario else '—' }}</td>
+        <td style="color:var(--muted);font-size:12px;">{{ m.criado_em.strftime('%d/%m/%Y %H:%M') }}</td>
       </tr>
       {% endfor %}
     </tbody>
   </table>
   {% else %}
   <div class="empty">
-    <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-    <p>Nenhuma nota fiscal lançada.</p>
+    <svg viewBox="0 0 24 24"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 014-4h14"/></svg>
+    <p>Nenhuma movimentação registrada ainda.</p>
   </div>
   {% endif %}
 </div>
+
+<script>
+function registrar() {
+  const produto_id = document.getElementById('mov-produto').value;
+  if (!produto_id) { alert('Selecione um produto.'); return; }
+  const form = document.createElement('form');
+  form.method = 'POST';
+  form.action = '/movimentacoes';
+  const fields = {
+    produto_id,
+    tipo: document.getElementById('mov-tipo').value,
+    quantidade: document.getElementById('mov-qtd').value,
+    observacao: document.getElementById('mov-obs').value,
+  };
+  for (const [k, v] of Object.entries(fields)) {
+    const i = document.createElement('input'); i.name = k; i.value = v; form.appendChild(i);
+  }
+  document.body.appendChild(form);
+  form.submit();
+}
+</script>
 {% endblock %}
