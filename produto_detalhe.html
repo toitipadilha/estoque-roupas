@@ -1,0 +1,158 @@
+{% extends 'base.html' %}
+{% block title %}Nova Nota Fiscal · EstoqueVestir{% endblock %}
+{% block page_title %}Lançar Nota Fiscal{% endblock %}
+{% block page_sub %}Vincula a NF ao estoque automaticamente{% endblock %}
+{% block topbar_actions %}<a href="{{ url_for('notas') }}" class="btn btn-secondary">← Voltar</a>{% endblock %}
+
+{% block content %}
+<div class="form-card" style="max-width:820px;">
+  <!-- Cabeçalho NF -->
+  <div class="section-title" style="margin-bottom:16px;">Dados da Nota</div>
+  <div class="form-grid">
+    <div class="form-group">
+      <label>Número da NF *</label>
+      <input type="text" id="numero" placeholder="000001">
+    </div>
+    <div class="form-group">
+      <label>Série</label>
+      <input type="text" id="serie" placeholder="1" style="max-width:80px;">
+    </div>
+    <div class="form-group">
+      <label>Tipo *</label>
+      <select id="tipo">
+        <option value="entrada">Entrada (compra)</option>
+        <option value="saida">Saída (venda/devolução)</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Data de Emissão</label>
+      <input type="date" id="data_emissao" value="{{ today }}">
+    </div>
+    <div class="form-group full">
+      <label>Fornecedor</label>
+      <select id="fornecedor_id">
+        <option value="">Sem vínculo</option>
+        {% for f in fornecedores %}
+          <option value="{{ f.id }}">{{ f.nome }}{% if f.cnpj %} — {{ f.cnpj }}{% endif %}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-group full">
+      <label>Chave NF-e (44 dígitos)</label>
+      <input type="text" id="chave_nfe" placeholder="00000000000000000000000000000000000000000000" maxlength="44">
+    </div>
+    <div class="form-group full">
+      <label>Observação</label>
+      <input type="text" id="obs" placeholder="Opcional…">
+    </div>
+  </div>
+
+  <!-- Itens -->
+  <div class="section-title" style="margin:24px 0 14px;">Itens da Nota</div>
+  <div id="itens-wrap">
+    <div class="item-row" style="display:grid;grid-template-columns:2fr 80px 120px 32px;gap:10px;margin-bottom:10px;align-items:end;">
+      <div class="form-group" style="margin:0;">
+        <label>Produto</label>
+        <select class="sel-produto" onchange="preencherPreco(this)">
+          <option value="">Selecione…</option>
+          {% for p in produtos %}
+            <option value="{{ p.id }}" data-custo="{{ p.preco_custo }}" data-venda="{{ p.preco_venda }}">{{ p.nome }} ({{ p.sku }})</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group" style="margin:0;">
+        <label>Qtd</label>
+        <input type="number" class="inp-qtd" min="1" value="1">
+      </div>
+      <div class="form-group" style="margin:0;">
+        <label>Preço Unit. R$</label>
+        <input type="number" class="inp-preco" step="0.01" min="0" value="0">
+      </div>
+      <button type="button" onclick="removeItem(this)" style="background:rgba(224,92,92,.15);color:var(--danger);border:none;border-radius:7px;padding:9px 10px;cursor:pointer;margin-top:22px;">✕</button>
+    </div>
+  </div>
+  <button type="button" class="btn btn-secondary btn-sm" onclick="addItem()" style="margin-bottom:24px;">
+    + Adicionar item
+  </button>
+
+  <div id="total-wrap" style="text-align:right;font-size:15px;font-weight:600;color:var(--accent);margin-bottom:20px;"></div>
+
+  <div style="display:flex;gap:10px;">
+    <button class="btn btn-primary" onclick="salvar()">
+      <svg viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/></svg>
+      Salvar e Atualizar Estoque
+    </button>
+    <a href="{{ url_for('notas') }}" class="btn btn-ghost">Cancelar</a>
+  </div>
+</div>
+
+<script>
+const produtoOpts = `{% for p in produtos %}<option value="{{ p.id }}" data-custo="{{ p.preco_custo }}" data-venda="{{ p.preco_venda }}">{{ p.nome }} ({{ p.sku }})</option>{% endfor %}`;
+
+function preencherPreco(sel) {
+  const opt = sel.selectedOptions[0];
+  const tipo = document.getElementById('tipo').value;
+  const row = sel.closest('.item-row');
+  const preco = tipo === 'entrada' ? opt.dataset.custo : opt.dataset.venda;
+  row.querySelector('.inp-preco').value = preco || 0;
+  calcTotal();
+}
+
+function calcTotal() {
+  let total = 0;
+  document.querySelectorAll('.item-row').forEach(row => {
+    const q = parseInt(row.querySelector('.inp-qtd').value) || 0;
+    const p = parseFloat(row.querySelector('.inp-preco').value) || 0;
+    total += q * p;
+  });
+  document.getElementById('total-wrap').textContent = total > 0 ? `Total: R$ ${total.toFixed(2).replace('.', ',')}` : '';
+}
+
+function addItem() {
+  const div = document.createElement('div');
+  div.className = 'item-row';
+  div.style.cssText = 'display:grid;grid-template-columns:2fr 80px 120px 32px;gap:10px;margin-bottom:10px;align-items:end;';
+  div.innerHTML = `
+    <div class="form-group" style="margin:0;">
+      <label>Produto</label>
+      <select class="sel-produto" onchange="preencherPreco(this)"><option value="">Selecione…</option>${produtoOpts}</select>
+    </div>
+    <div class="form-group" style="margin:0;"><label>Qtd</label><input type="number" class="inp-qtd" min="1" value="1" oninput="calcTotal()"></div>
+    <div class="form-group" style="margin:0;"><label>Preço Unit. R$</label><input type="number" class="inp-preco" step="0.01" min="0" value="0" oninput="calcTotal()"></div>
+    <button type="button" onclick="removeItem(this)" style="background:rgba(224,92,92,.15);color:var(--danger);border:none;border-radius:7px;padding:9px 10px;cursor:pointer;margin-top:22px;">✕</button>`;
+  document.getElementById('itens-wrap').appendChild(div);
+}
+
+function removeItem(btn) {
+  if (document.querySelectorAll('.item-row').length > 1) { btn.closest('.item-row').remove(); calcTotal(); }
+}
+
+document.getElementById('tipo').addEventListener('change', () => {
+  document.querySelectorAll('.sel-produto').forEach(s => { if (s.value) preencherPreco(s); });
+});
+document.querySelectorAll('.inp-qtd, .inp-preco').forEach(el => el.addEventListener('input', calcTotal));
+
+// Set today's date
+document.getElementById('data_emissao').value = new Date().toISOString().split('T')[0];
+
+function salvar() {
+  const form = document.createElement('form');
+  form.method = 'POST'; form.action = '/notas/nova';
+  const add = (n,v) => { const i=document.createElement('input'); i.name=n; i.value=v; form.appendChild(i); };
+  add('numero', document.getElementById('numero').value);
+  add('serie', document.getElementById('serie').value);
+  add('tipo', document.getElementById('tipo').value);
+  add('fornecedor_id', document.getElementById('fornecedor_id').value);
+  add('data_emissao', document.getElementById('data_emissao').value);
+  add('chave_nfe', document.getElementById('chave_nfe').value);
+  add('observacao', document.getElementById('obs').value);
+  document.querySelectorAll('.item-row').forEach(row => {
+    const pid = row.querySelector('.sel-produto').value;
+    const qtd = row.querySelector('.inp-qtd').value;
+    const preco = row.querySelector('.inp-preco').value;
+    if (pid && qtd) { add('item_produto[]', pid); add('item_quantidade[]', qtd); add('item_preco[]', preco); }
+  });
+  document.body.appendChild(form); form.submit();
+}
+</script>
+{% endblock %}

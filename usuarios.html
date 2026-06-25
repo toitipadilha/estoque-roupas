@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+{% block title %}{{ 'Editar' if fornecedor else 'Novo' }} Fornecedor · EstoqueVestir{% endblock %}
+{% block page_title %}{{ 'Editar Fornecedor' if fornecedor else 'Novo Fornecedor' }}{% endblock %}
+{% block topbar_actions %}<a href="{{ url_for('fornecedores') }}" class="btn btn-secondary">← Voltar</a>{% endblock %}
+
+{% block content %}
+<div class="form-card">
+  <div class="form-grid">
+    <div class="form-group full">
+      <label>Razão Social / Nome *</label>
+      <input type="text" id="nome" placeholder="Moda Brasil Ltda" value="{{ fornecedor.nome if fornecedor else '' }}">
+    </div>
+    <div class="form-group">
+      <label>CNPJ</label>
+      <input type="text" id="cnpj" placeholder="00.000.000/0001-00" value="{{ fornecedor.cnpj if fornecedor else '' }}">
+    </div>
+    <div class="form-group">
+      <label>Nome do Contato</label>
+      <input type="text" id="contato" placeholder="João Silva" value="{{ fornecedor.contato if fornecedor else '' }}">
+    </div>
+    <div class="form-group">
+      <label>Telefone</label>
+      <input type="text" id="telefone" placeholder="(35) 99999-0000" value="{{ fornecedor.telefone if fornecedor else '' }}">
+    </div>
+    <div class="form-group">
+      <label>E-mail</label>
+      <input type="email" id="email" placeholder="contato@fornecedor.com" value="{{ fornecedor.email if fornecedor else '' }}">
+    </div>
+    <div class="form-group full">
+      <label>Endereço</label>
+      <input type="text" id="endereco" placeholder="Rua, número, cidade - UF" value="{{ fornecedor.endereco if fornecedor else '' }}">
+    </div>
+    <div class="form-group full">
+      <label>Observações</label>
+      <textarea id="observacao" rows="3" placeholder="Prazo de entrega, condições de pagamento…">{{ fornecedor.observacao if fornecedor else '' }}</textarea>
+    </div>
+    {% if fornecedor %}
+    <div class="form-group">
+      <label>Status</label>
+      <select id="ativo">
+        <option value="ativo" {% if fornecedor.ativo %}selected{% endif %}>Ativo</option>
+        <option value="" {% if not fornecedor.ativo %}selected{% endif %}>Inativo</option>
+      </select>
+    </div>
+    {% endif %}
+  </div>
+  <div style="display:flex;gap:10px;margin-top:24px;">
+    <button class="btn btn-primary" onclick="salvar()">Salvar</button>
+    <a href="{{ url_for('fornecedores') }}" class="btn btn-ghost">Cancelar</a>
+  </div>
+</div>
+<script>
+function salvar() {
+  const form = document.createElement('form');
+  form.method = 'POST';
+  form.action = '{{ url_for("fornecedor_editar", id=fornecedor.id) if fornecedor else url_for("fornecedor_novo") }}';
+  const fields = {
+    nome: document.getElementById('nome').value,
+    cnpj: document.getElementById('cnpj').value,
+    contato: document.getElementById('contato').value,
+    telefone: document.getElementById('telefone').value,
+    email: document.getElementById('email').value,
+    endereco: document.getElementById('endereco').value,
+    observacao: document.getElementById('observacao').value,
+    {% if fornecedor %}ativo: document.getElementById('ativo').value,{% endif %}
+  };
+  for (const [k,v] of Object.entries(fields)) {
+    const i = document.createElement('input'); i.name=k; i.value=v; form.appendChild(i);
+  }
+  document.body.appendChild(form); form.submit();
+}
+</script>
+{% endblock %}

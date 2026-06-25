@@ -1,0 +1,123 @@
+{% extends 'base.html' %}
+{% block title %}{{ produto.nome }} · EstoqueVestir{% endblock %}
+{% block page_title %}{{ produto.nome }}{% endblock %}
+{% block page_sub %}SKU: {{ produto.sku }}{% endblock %}
+
+{% block topbar_actions %}
+  <a href="{{ url_for('produto_editar', id=produto.id) }}" class="btn btn-secondary">Editar</a>
+  <a href="{{ url_for('produtos') }}" class="btn btn-ghost">← Produtos</a>
+{% endblock %}
+
+{% block content %}
+<div class="card" style="margin-bottom:20px;">
+  <div class="detail-grid">
+    <div class="detail-item">
+      <div class="dl">Categoria</div>
+      <div class="dv">{{ produto.categoria.nome if produto.categoria else '—' }}</div>
+    </div>
+    <div class="detail-item">
+      <div class="dl">Tamanho / Cor</div>
+      <div class="dv">{{ produto.tamanho or '—' }} · {{ produto.cor or '—' }}</div>
+    </div>
+    <div class="detail-item">
+      <div class="dl">Quantidade em Estoque</div>
+      <div class="dv {% if produto.quantidade == 0 %}qtd-zero{% elif produto.quantidade <= produto.estoque_minimo %}qtd-low{% else %}qtd-ok{% endif %}" style="font-size:26px;">
+        {{ produto.quantidade }}
+        <span style="font-size:14px;color:var(--muted);font-weight:400;"> / mín {{ produto.estoque_minimo }}</span>
+      </div>
+    </div>
+    <div class="detail-item">
+      <div class="dl">Status</div>
+      <div class="dv">
+        {% if produto.status == 'ok' %}<span class="badge badge-ok">OK</span>
+        {% elif produto.status == 'baixo' %}<span class="badge badge-baixo">Estoque Baixo</span>
+        {% else %}<span class="badge badge-sem">Sem Estoque</span>{% endif %}
+      </div>
+    </div>
+    <div class="detail-item">
+      <div class="dl">Preço de Custo</div>
+      <div class="dv">R$ {{ "%.2f"|format(produto.preco_custo) }}</div>
+    </div>
+    <div class="detail-item">
+      <div class="dl">Preço de Venda</div>
+      <div class="dv" style="color:var(--accent);">R$ {{ "%.2f"|format(produto.preco_venda) }}</div>
+    </div>
+    <div class="detail-item">
+      <div class="dl">Valor em Estoque (custo)</div>
+      <div class="dv">R$ {{ "%.2f"|format(produto.quantidade * produto.preco_custo) }}</div>
+    </div>
+    <div class="detail-item">
+      <div class="dl">Margem Potencial</div>
+      <div class="dv" style="color:var(--success);">R$ {{ "%.2f"|format((produto.preco_venda - produto.preco_custo) * produto.quantidade) }}</div>
+    </div>
+  </div>
+</div>
+
+<!-- Quick move -->
+<div class="card" style="margin-bottom:24px;">
+  <div class="section-title" style="margin-bottom:16px;">Registrar Movimentação</div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
+    <div class="form-group">
+      <label>Tipo</label>
+      <select id="mov-tipo" style="width:140px;">
+        <option value="entrada">Entrada</option>
+        <option value="saida">Saída</option>
+        <option value="ajuste">Ajuste (definir qtd)</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Quantidade</label>
+      <input type="number" id="mov-qtd" min="1" value="1" style="width:100px;">
+    </div>
+    <div class="form-group">
+      <label>Observação</label>
+      <input type="text" id="mov-obs" placeholder="Opcional" style="width:220px;">
+    </div>
+    <button class="btn btn-primary" onclick="mover()">Confirmar</button>
+  </div>
+</div>
+
+<!-- Histórico -->
+<div class="section-title">Histórico de Movimentações</div>
+<div class="table-wrap">
+  {% if movimentacoes %}
+  <table>
+    <thead>
+      <tr><th>Tipo</th><th>Quantidade</th><th>Observação</th><th>Usuário</th><th>Data</th></tr>
+    </thead>
+    <tbody>
+      {% for m in movimentacoes %}
+      <tr>
+        <td><span class="badge badge-{{ m.tipo }}">{{ m.tipo|capitalize }}</span></td>
+        <td>{{ m.quantidade }}</td>
+        <td style="color:var(--muted);font-size:12.5px;">{{ m.observacao or '—' }}</td>
+        <td style="font-size:12.5px;">{{ m.usuario.nome if m.usuario else '—' }}</td>
+        <td style="color:var(--muted);font-size:12px;">{{ m.criado_em.strftime('%d/%m/%Y %H:%M') }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty"><p>Nenhuma movimentação registrada.</p></div>
+  {% endif %}
+</div>
+
+<script>
+function mover() {
+  const form = document.createElement('form');
+  form.method = 'POST';
+  form.action = '/movimentacoes';
+  const fields = {
+    produto_id: '{{ produto.id }}',
+    tipo: document.getElementById('mov-tipo').value,
+    quantidade: document.getElementById('mov-qtd').value,
+    observacao: document.getElementById('mov-obs').value,
+  };
+  for (const [k, v] of Object.entries(fields)) {
+    const i = document.createElement('input'); i.name = k; i.value = v; form.appendChild(i);
+  }
+  document.body.appendChild(form);
+  form.submit();
+}
+</script>
+{% endblock %}

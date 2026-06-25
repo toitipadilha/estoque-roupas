@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+{% block title %}{{ 'Editar' if usuario else 'Novo' }} Usuário · EstoqueVestir{% endblock %}
+{% block page_title %}{{ 'Editar Usuário' if usuario else 'Novo Usuário' }}{% endblock %}
+{% block page_sub %}{{ usuario.nome if usuario else 'Preencha os dados de acesso' }}{% endblock %}
+
+{% block topbar_actions %}
+  <a href="{{ url_for('usuarios') }}" class="btn btn-secondary">← Voltar</a>
+{% endblock %}
+
+{% block content %}
+<div class="form-card">
+  <div class="form-grid">
+    <div class="form-group full">
+      <label>Nome completo *</label>
+      <input type="text" id="nome" placeholder="João Silva" value="{{ usuario.nome if usuario else '' }}">
+    </div>
+    <div class="form-group full">
+      <label>E-mail *</label>
+      <input type="email" id="email" placeholder="joao@loja.com" value="{{ usuario.email if usuario else '' }}" {% if usuario %}readonly style="opacity:.6"{% endif %}>
+    </div>
+    <div class="form-group">
+      <label>{{ 'Nova Senha' if usuario else 'Senha *' }}</label>
+      <input type="password" id="senha" placeholder="{% if usuario %}Deixe vazio para manter{% else %}Mínimo 6 caracteres{% endif %}">
+    </div>
+    <div class="form-group">
+      <label>Perfil</label>
+      <select id="perfil">
+        <option value="vendedor" {% if usuario and usuario.perfil == 'vendedor' %}selected{% endif %}>Vendedor</option>
+        <option value="admin" {% if usuario and usuario.perfil == 'admin' %}selected{% endif %}>Administrador</option>
+      </select>
+    </div>
+    {% if usuario %}
+    <div class="form-group">
+      <label>Status</label>
+      <select id="ativo">
+        <option value="ativo" {% if usuario.ativo %}selected{% endif %}>Ativo</option>
+        <option value="" {% if not usuario.ativo %}selected{% endif %}>Inativo</option>
+      </select>
+    </div>
+    {% endif %}
+  </div>
+
+  <div style="display:flex;gap:10px;margin-top:24px;">
+    <button class="btn btn-primary" onclick="salvar()">Salvar</button>
+    <a href="{{ url_for('usuarios') }}" class="btn btn-ghost">Cancelar</a>
+  </div>
+</div>
+
+<script>
+function salvar() {
+  const form = document.createElement('form');
+  form.method = 'POST';
+  form.action = '{{ url_for("usuario_editar", id=usuario.id) if usuario else url_for("usuario_novo") }}';
+  const fields = {
+    nome: document.getElementById('nome').value,
+    email: document.getElementById('email').value,
+    senha: document.getElementById('senha').value,
+    perfil: document.getElementById('perfil').value,
+    {% if usuario %}ativo: document.getElementById('ativo').value,{% endif %}
+  };
+  for (const [k, v] of Object.entries(fields)) {
+    const i = document.createElement('input'); i.name = k; i.value = v; form.appendChild(i);
+  }
+  document.body.appendChild(form); form.submit();
+}
+</script>
+{% endblock %}

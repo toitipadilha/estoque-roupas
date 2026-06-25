@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+{% block title %}Categorias · EstoqueVestir{% endblock %}
+{% block page_title %}Categorias{% endblock %}
+{% block page_sub %}Gerencie as categorias de produtos{% endblock %}
+
+{% block content %}
+<div style="display:grid;grid-template-columns:340px 1fr;gap:24px;align-items:start;">
+  <div class="form-card">
+    <div class="section-title" style="margin-bottom:16px;">Nova Categoria</div>
+    <div class="form-group" style="margin-bottom:14px;">
+      <label>Nome *</label>
+      <input type="text" id="cat-nome" placeholder="Ex: Feminino, Calçados…">
+    </div>
+    <button class="btn btn-primary" onclick="salvar()">
+      <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Criar
+    </button>
+  </div>
+
+  <div class="table-wrap">
+    {% if categorias %}
+    <table>
+      <thead>
+        <tr><th>Categoria</th><th>Produtos</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for c in categorias %}
+        <tr>
+          <td style="font-weight:500;">{{ c.nome }}</td>
+          <td style="color:var(--muted);">{{ c.produtos|length }} produto(s)</td>
+          <td>
+            {% if c.produtos|length == 0 %}
+            <form method="POST" action="{{ url_for('categoria_excluir', id=c.id) }}" onsubmit="return confirm('Excluir {{ c.nome }}?')">
+              <button type="submit" class="btn btn-danger btn-sm">Excluir</button>
+            </form>
+            {% else %}
+            <span style="font-size:12px;color:var(--muted);">com produtos</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty"><p>Nenhuma categoria cadastrada.</p></div>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+function salvar() {
+  const nome = document.getElementById('cat-nome').value.trim();
+  if (!nome) { alert('Digite o nome da categoria.'); return; }
+  const form = document.createElement('form');
+  form.method = 'POST'; form.action = '/categorias';
+  const i = document.createElement('input'); i.name = 'nome'; i.value = nome; form.appendChild(i);
+  document.body.appendChild(form); form.submit();
+}
+</script>
+{% endblock %}
